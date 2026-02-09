@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Todo List</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app" id="todo-app">
+    <h1>📝 Todo List</h1>
+
+    <div class="input-box">
+      <input id="todo-input" placeholder="Add a task..." />
+      <button onclick="addTodo()">Add</button>
+    </div>
+
+    <ul id="todo-list"></ul>
+
+    <button class="save-btn" onclick="saveAsImage()">
+      Save as PNG
+    </button>
+  </div>
+
+  <!-- html2canvas CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
