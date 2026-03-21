@@ -30,7 +30,6 @@ body {
   color: var(--text-dark);
 }
 
-/* Glassmorphism Canvas */
 .app {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
@@ -46,7 +45,6 @@ body {
   flex-direction: column;
 }
 
-/* Typography */
 h1 {
   text-align: center;
   margin-bottom: 25px;
@@ -56,7 +54,6 @@ h1 {
   letter-spacing: -0.5px;
 }
 
-/* Input Area */
 .input-box {
   display: flex;
   gap: 12px;
@@ -84,7 +81,6 @@ input::placeholder {
   color: var(--text-gray);
 }
 
-/* Buttons */
 button {
   padding: 12px 20px;
   border-radius: 12px;
@@ -115,7 +111,6 @@ button:focus-visible {
   transform: translateY(1px);
 }
 
-/* Filters */
 .filters {
   display: flex;
   gap: 8px;
@@ -141,34 +136,20 @@ button:focus-visible {
   border-color: var(--primary-color);
 }
 
-/* Todo List */
 ul {
   list-style: none;
-  flex: 1; /* Pushes the save button to the bottom */
+  flex: 1;
   overflow-y: auto;
-  padding-right: 5px; /* For scrollbar space */
+  padding-right: 5px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* Custom Scrollbar */
-ul::-webkit-scrollbar {
-  width: 6px;
-}
-
-ul::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-ul::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 10px;
-}
-
-ul::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
-}
+ul::-webkit-scrollbar { width: 6px; }
+ul::-webkit-scrollbar-track { background: transparent; }
+ul::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 10px; }
+ul::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
 
 li {
   background: rgba(255, 255, 255, 0.8);
@@ -179,37 +160,12 @@ li {
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 li:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-/* List element entering animation */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Exiting animation class */
-li.fade-out {
-  animation: fadeOut 0.3s forwards;
-}
-
-@keyframes fadeOut {
-  to {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
 }
 
 li .task-text {
@@ -221,7 +177,6 @@ li .task-text {
   padding-right: 15px;
 }
 
-/* Completed */
 li.done {
   background: rgba(238, 242, 255, 0.6);
 }
@@ -231,7 +186,6 @@ li.done .task-text {
   color: #94a3b8;
 }
 
-/* Delete Button */
 li .delete-btn {
   background: rgba(239, 68, 68, 0.1);
   color: var(--danger-color);
@@ -245,29 +199,10 @@ li .delete-btn:hover {
   color: white;
 }
 
-/* Empty State */
 .empty-state {
   text-align: center;
   color: var(--text-gray);
   margin-top: 2rem;
   font-size: 0.95rem;
   font-style: italic;
-}
-
-/* Save as Image Button */
-.save-btn {
-  margin-top: 25px;
-  width: 100%;
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  padding: 14px;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-}
-
-.save-btn:hover {
-  background: linear-gradient(135deg, #059669, #047857);
 }
