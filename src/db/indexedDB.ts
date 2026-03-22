@@ -22,6 +22,11 @@ export const initDB = () => {
           db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         }
       },
+    }).catch(err => {
+      console.error('Critical IndexedDB Initialization Error:', err);
+      // Reset the promise cache to prevent perpetual failure states and rethrow safely
+      dbPromise = null;
+      throw new Error(`IndexedDB failed to initialize: ${err.message}`);
     });
   }
   return dbPromise;
