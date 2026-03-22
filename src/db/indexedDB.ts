@@ -19,6 +19,7 @@ export const initDB = () => {
   if (!dbPromise) {
     dbPromise = openDB<TodoDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion, newVersion, transaction) {
+        console.debug(`Upgrading IndexedDB from version ${oldVersion} to ${newVersion}`);
         // Create store if it doesn't exist (V1)
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME, { keyPath: 'id' });
