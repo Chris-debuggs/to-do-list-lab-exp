@@ -30,14 +30,19 @@ function App() {
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [isLoaded, setIsLoaded] = useState(false);
   const [isEmbedding, setIsEmbedding] = useState(false);
+  
+  // Deterministic UI lock for WebAssembly instantiation
+  const [isModelReady, setIsModelReady] = useState(false);
   const [displayTodos, setDisplayTodos] = useState<Todo[]>([]);
   
   // Asynchronous RPC mapping for Web Worker promises
   const pendingRequests = useRef(new Map<string, (val: any) => void>());
 
-  // Phase 1: IndexedDB Async Hydration
+  // Initial Boot Sequence
   useEffect(() => {
     let mounted = true;
+    
+    // 1. IndexedDB Async Hydration
     getTodosFromDB().then(storedTodos => {
       if (mounted) {
         dispatch({ type: 'SET_TODOS', payload: storedTodos });
@@ -45,22 +50,33 @@ function App() {
       }
     }).catch(err => {
       console.error('Failed to load DB', err);
-      if (mounted) setIsLoaded(true); // Don't crash UI, gracefully recover
+      if (mounted) setIsLoaded(true); 
     });
+
+    // 2. Dispatch ping to warm up the tensor pipeline and monitor readiness
+    worker.postMessage({ id: 'init', type: 'PING' });
+    
     return () => { mounted = false; };
   }, []);
 
-  // Phase 2: Schema Persistance Trigger
+  // Schema Persistence Trigger
   useEffect(() => {
     if (isLoaded) {
       saveTodosToDB(todos).catch(err => console.error('Failed to save to DB', err));
     }
   }, [todos, isLoaded]);
 
-  // Phase 3: RPC Worker Listener
+  // RPC Worker Listener
   useEffect(() => {
     worker.onmessage = (e: MessageEvent) => {
       const { id, status, embedding } = e.data;
+      
+      // Unlock the UI when the pipeline compilation finishes
+      if (status === 'READY' || (id === 'init' && status === 'SUCCESS')) {
+        setIsModelReady(true);
+        return;
+      }
+      
       if (status === 'SUCCESS' && pendingRequests.current.has(id)) {
         pendingRequests.current.get(id)!(embedding);
         pendingRequests.current.delete(id);
@@ -78,11 +94,11 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || isEmbedding) return;
+    if (!inputValue.trim() || isEmbedding || !isModelReady) return;
     
     setIsEmbedding(true); // Triggers loading UI preventing double-submission
     try {
-      // Offload to WebWorker
+      // Offload feature-extraction to WebWorker
       const embedding = await getEmbedding(inputValue.trim());
       
       const newTodo: Todo = {
@@ -107,7 +123,7 @@ function App() {
 
   const purgeCompleted = () => dispatch({ type: 'PURGE_COMPLETED' });
 
-  // Semantic Search & Rendering Pipeline
+  // Semantic Search & Filtering
   useEffect(() => {
     const activeTodos = todos.filter(t => {
       if (filter === 'active') return !t.completed;
@@ -128,7 +144,7 @@ function App() {
         ...todo,
         score: todo.embedding ? cosineSimilarity(queryEmb, todo.embedding) : 0
       }));
-      // Sort by inference semantic similarity descending
+      // Sort by semantic similarity descending
       scored.sort((a, b) => b.score - a.score);
       setDisplayTodos(scored);
     });
@@ -137,49 +153,92 @@ function App() {
   }, [todos, filter, searchQuery]);
 
   return (
-    <main className="app">
+    <main className="app" style={{ minHeight: '600px' }}>
       <h1>🧠 Semantic Todo</h1>
 
-      <div className="search-box" style={{ marginBottom: '15px' }}>
-        <input 
-          type="text" 
-          placeholder="Semantic Search (e.g. 'gym stuff')" 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      <form className="input-box" onSubmit={handleSubmit}>
+      {/* Primary Ingestion Node - Explicit Hierarchy & Flex Alignment */}
+      <form className="input-box" style={{ alignItems: 'stretch' }} onSubmit={handleSubmit}>
         <input 
           type="text" 
           placeholder={isEmbedding ? "Extracting features..." : "Add a task..."}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           required 
-          disabled={isEmbedding}
+          disabled={isEmbedding || !isModelReady}
         />
         <select 
           value={priority} 
           onChange={(e) => setPriority(e.target.value as Priority)}
-          disabled={isEmbedding}
-          style={{ padding: '0 10px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)' }}
+          disabled={isEmbedding || !isModelReady}
+          style={{
+            padding: '0 10px',
+            borderRadius: '12px',
+            border: '1px solid rgba(0,0,0,0.1)',
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            color: 'var(--text-dark)',
+            outline: 'none'
+          }}
         >
           <option value="Low">Low</option>
           <option value="Medium">Medium</option>
           <option value="High">High</option>
         </select>
-        <button type="submit" disabled={isEmbedding}>
+        <button type="submit" disabled={isEmbedding || !isModelReady} style={{ display: 'flex', alignItems: 'center' }}>
           {isEmbedding ? '...' : 'Add'}
         </button>
       </form>
 
-      <div className="filters">
-        <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
-        <button className={`filter-btn ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Active</button>
-        <button className={`filter-btn ${filter === 'completed' ? 'active' : ''}`} onClick={() => setFilter('completed')}>Completed</button>
-        <button className="filter-btn" style={{ color: 'var(--danger-color)', marginLeft: '10px' }} onClick={purgeCompleted}>Purge</button>
+      {/* Semantic Search & State Isolation Block */}
+      <div style={{ background: 'rgba(255,255,255,0.4)', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid var(--glass-border)' }}>
+        
+        {/* ML Execution Badge & Query Interface */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+          <input 
+            type="text" 
+            placeholder={isModelReady ? "Semantic Search (e.g. 'gym stuff')" : "Compiling ML Engine..."} 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            disabled={!isModelReady}
+            style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem', border: '1px solid rgba(0,0,0,0.1)' }}
+          />
+          {!isModelReady && <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>⏳ Init Tensor</span>}
+          {isModelReady && <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, whiteSpace: 'nowrap' }}>✔️ Model Online</span>}
+        </div>
+
+        {/* Visibility Filters */}
+        <div className="filters" style={{ marginBottom: 0 }}>
+          <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
+          <button className={`filter-btn ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Active</button>
+          <button className={`filter-btn ${filter === 'completed' ? 'active' : ''}`} onClick={() => setFilter('completed')}>Completed</button>
+        </div>
+
       </div>
 
+      {/* Destructive Batch Mutation Container */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '0 5px' }}>
+        <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-gray)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tasks</h3>
+        
+        <button 
+          onClick={purgeCompleted}
+          style={{
+            background: 'rgba(254, 226, 226, 0.6)',
+            color: 'var(--danger-hover)',
+            border: '1px solid #fecaca',
+            padding: '6px 12px',
+            fontSize: '0.8rem',
+            borderRadius: '8px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = 'var(--danger-color)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(254, 226, 226, 0.6)'; e.currentTarget.style.color = 'var(--danger-hover)'; }}
+        >
+          Purge Completed
+        </button>
+      </div>
+
+      {/* Render Tree */}
       <ul>
         {!isLoaded ? (
           // Skeleton Loader pattern for Hydration Phase
@@ -189,10 +248,10 @@ function App() {
             </li>
           ))
         ) : displayTodos.length === 0 ? (
-          <p className="empty-state">No matching tasks.</p>
+          <p className="empty-state">{searchQuery ? "No matching semantics." : "Your list is empty."}</p>
         ) : (
           displayTodos.map(todo => (
-            <li key={todo.id} className={todo.completed ? 'done' : ''} style={{ borderLeft: `6px solid ${todo.priority === 'High' ? 'var(--danger-color)' : todo.priority === 'Medium' ? '#f59e0b' : '#10b981'}` }}>
+            <li key={todo.id} className={todo.completed ? 'done' : ''} style={{ borderLeft: `5px solid ${todo.priority === 'High' ? 'var(--danger-color)' : todo.priority === 'Medium' ? '#f59e0b' : '#10b981'}` }}>
               <span 
                 className="task-text"
                 role="button"
